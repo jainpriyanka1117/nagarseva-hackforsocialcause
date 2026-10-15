@@ -12,8 +12,13 @@ import { toast } from "sonner";
 import { CivicMap } from "@/components/civic-map";
 import { AppShell } from "@/components/nagarseva-shell";
 import { Button } from "@/components/ui/button";
-import { complaints, statusStyles } from "@/lib/nagarseva-data";
+import { complaints, statusStyles, type Status } from "@/lib/nagarseva-data";
+import { fetchComplaintById, updateComplaintStatusServerFn } from "@/server/complaints";
+
 export const Route = createFileRoute("/complaint/$id")({
+  loader: async ({ params }) => {
+    return await fetchComplaintById(params.id);
+  },
   head: () => ({
     meta: [
       { title: "Complaint tracking — NagarSeva" },
@@ -33,16 +38,64 @@ export const Route = createFileRoute("/complaint/$id")({
   }),
   component: ComplaintDetail,
 });
+
 function ComplaintDetail() {
   const { id } = Route.useParams();
-  const complaint = complaints.find((item) => item.id === id) ?? {
-    ...complaints[0],
-    id,
-    status: "Submitted" as const,
-    category: "New civic report",
-    description: "This report was just submitted and is awaiting routing.",
+  const dbData = Route.useLoaderData();
+  const fallback = complaints.find((item) => item.id === id) ?? complaints[0]!;
+
+  const [complaint, setComplaint] = useState(
+    dbData ?? {
+      ...fallback,
+      id,
+      timeline: [
+        {
+          id: "1",
+          action: "Submitted",
+          message: "Report received and routed to Ward 82.",
+          createdAt: "Today, 09:14",
+        },
+      ],
+      evidence: [],
+    },
+  );
+
+  const handleVerify = async () => {
+    try {
+      const updated = await updateComplaintStatusServerFn({
+        data: {
+          id: complaint.id,
+          status: "Closed: verified" as Status,
+          actorName: "Ananya Roy",
+          actorRole: "Citizen",
+          verificationFeedback: "Citizen verified outcome on ground.",
+        },
+      });
+      if (updated) setComplaint(updated);
+      toast.success("Resolution marked verified.");
+    } catch (e) {
+      toast.error((e as Error).message || "Verification failed");
+    }
   };
-  const [verified, setVerified] = useState(false);
+
+  const handleReopen = async () => {
+    try {
+      const updated = await updateComplaintStatusServerFn({
+        data: {
+          id: complaint.id,
+          status: "Reopened" as Status,
+          actorName: "Ananya Roy",
+          actorRole: "Citizen",
+          message: "Citizen reported problem persists at location.",
+        },
+      });
+      if (updated) setComplaint(updated);
+      toast.info("Report escalated back to operations.");
+    } catch (e) {
+      toast.error((e as Error).message || "Action failed");
+    }
+  };
+
   return (
     <AppShell title={complaint.category} eyebrow={`Complaint ${complaint.id}`}>
       <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -50,9 +103,9 @@ function ComplaintDetail() {
           <div className="app-panel rounded-lg p-5">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`rounded-md px-2.5 py-1 text-xs font-bold ${statusStyles[complaint.status]}`}
+                className={`rounded-md px-2.5 py-1 text-xs font-bold ${statusStyles[complaint.status as Status] ?? "bg-muted"}`}
               >
-                {verified ? "Closed: verified" : complaint.status}
+                {complaint.status}
               </span>
               <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground">
                 {complaint.priority} priority
@@ -66,36 +119,48 @@ function ComplaintDetail() {
               </span>
               <span className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-civic" />
-                {complaint.date}
+                {"createdAt" in complaint && typeof complaint.createdAt === "string"
+                  ? complaint.createdAt.slice(0, 10)
+                  : "Today"}
               </span>
               <span className="flex items-center gap-2">
                 <Clock3 className="h-4 w-4 text-civic" />
-                {complaint.sla}
+                {"slaRemaining" in complaint && complaint.slaRemaining
+                  ? complaint.slaRemaining
+                  : "sla" in complaint && complaint.sla
+                    ? (complaint.sla as string)
+                    : "Standard SLA"}
               </span>
             </div>
           </div>
           <div className="app-panel rounded-lg p-5">
-            <h2 className="text-lg font-extrabold">Activity</h2>
+            <h2 className="text-lg font-extrabold">Activity Timeline</h2>
             <div className="mt-6 space-y-6 border-l border-border pl-5">
-              <Timeline
-                title="Submitted"
-                detail="Report received and routed to Ward 82."
-                time="Today, 09:14"
-                active
-              />
-              <Timeline
-                title="Accepted"
-                detail="Drainage Operations acknowledged the issue."
-                time="Today, 11:02"
-              />
-              <Timeline
-                title="In progress"
-                detail="Field team assigned for a site inspection."
-                time="Expected next update"
-              />
+              {"timeline" in complaint && complaint.timeline && complaint.timeline.length > 0 ? (
+                complaint.timeline.map((item, idx) => (
+                  <Timeline
+                    key={item.id}
+                    title={item.action}
+                    detail={item.message}
+                    time={
+                      typeof item.createdAt === "string" && item.createdAt.includes("T")
+                        ? `${item.createdAt.slice(0, 10)} ${item.createdAt.slice(11, 16)}`
+                        : String(item.createdAt)
+                    }
+                    active={idx === 0}
+                  />
+                ))
+              ) : (
+                <Timeline
+                  title="Submitted"
+                  detail="Report received and routed to Ward 82."
+                  time="Today, 09:14"
+                  active
+                />
+              )}
             </div>
           </div>
-          {complaint.status === "Resolved — pending verification" && !verified && (
+          {complaint.status === "Resolved — pending verification" && (
             <div className="rounded-lg border border-warning/40 bg-warning/10 p-5">
               <h2 className="font-extrabold">Can you confirm the result?</h2>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -103,21 +168,11 @@ function ComplaintDetail() {
                 as verified.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  onClick={() => {
-                    setVerified(true);
-                    toast.success("Resolution marked verified.");
-                  }}
-                >
+                <Button onClick={handleVerify}>
                   <CheckCircle2 /> Yes, resolved
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    toast.info("A reopen request needs fresh evidence in the live service.")
-                  }
-                >
-                  Reopen with evidence
+                <Button variant="outline" onClick={handleReopen}>
+                  Problem persists / Reopen
                 </Button>
               </div>
             </div>
@@ -134,7 +189,13 @@ function ComplaintDetail() {
           <div className="app-panel rounded-lg p-5">
             <p className="section-label">Accountability</p>
             <p className="mt-3 font-bold">SLA deadline</p>
-            <p className="mt-1 text-sm text-muted-foreground">{complaint.sla}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {"slaRemaining" in complaint && complaint.slaRemaining
+                ? complaint.slaRemaining
+                : "sla" in complaint && complaint.sla
+                  ? (complaint.sla as string)
+                  : "Target SLA: 48h"}
+            </p>
             <Link
               to="/ward"
               className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-civic"
@@ -154,6 +215,7 @@ function ComplaintDetail() {
     </AppShell>
   );
 }
+
 function Timeline({
   title,
   detail,

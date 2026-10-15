@@ -15,7 +15,9 @@ import { AppShell } from "@/components/nagarseva-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { categories, complaints } from "@/lib/nagarseva-data";
+import { createComplaintServerFn } from "@/server/complaints";
 import { cn } from "@/lib/utils";
+
 export const Route = createFileRoute("/report")({
   head: () => ({
     meta: [
@@ -36,10 +38,37 @@ function Report() {
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [createdId, setCreatedId] = useState("NS-24-01861");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const advance = () => {
+
+  const advance = async () => {
     if (step === 2 && (!category || description.trim().length < 12)) {
       toast.error("Choose a category and add at least 12 characters.");
+      return;
+    }
+    if (step === 4) {
+      try {
+        setIsSubmitting(true);
+        const res = await createComplaintServerFn({
+          data: {
+            category,
+            description,
+            location: "12th Cross, Indiranagar",
+            ward: "Ward 82",
+            priority: category === "Blocked drain" ? "High" : "Medium",
+            safety: category === "Poor lighting" || category === "Unsafe area",
+            citizenName: "Priya Sharma",
+          },
+        });
+        setCreatedId(res.id);
+        setStep(5);
+        toast.success(`Complaint ${res.id} submitted successfully!`);
+      } catch (e) {
+        toast.error((e as Error).message || "Failed to submit report");
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
     setStep((value) => value + 1);
@@ -53,7 +82,7 @@ function Report() {
           </span>
           <h2 className="mt-5 text-2xl font-extrabold">Thanks for making this visible.</h2>
           <p className="mt-3 text-muted-foreground">
-            Your issue has been received as <strong className="text-foreground">NS-24-01861</strong>{" "}
+            Your issue has been received as <strong className="text-foreground">{createdId}</strong>{" "}
             and is awaiting review.
           </p>
           <div className="my-6 border-y border-border py-5 text-left">
@@ -63,9 +92,7 @@ function Report() {
             <p className="mt-2 font-bold">Submitted · Ward 82 routing</p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button
-              onClick={() => navigate({ to: "/complaint/$id", params: { id: "NS-24-01861" } })}
-            >
+            <Button onClick={() => navigate({ to: "/complaint/$id", params: { id: createdId } })}>
               Track this report
             </Button>
             <Button variant="outline" asChild>
@@ -120,7 +147,9 @@ function Report() {
                 Save for later
               </Link>
             )}
-            <Button onClick={advance}>{step === 4 ? "Submit report" : "Continue"}</Button>
+            <Button onClick={advance} disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : step === 4 ? "Submit report" : "Continue"}
+            </Button>
           </div>
         </div>
       </div>
