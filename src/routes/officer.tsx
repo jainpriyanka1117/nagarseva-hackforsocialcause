@@ -1,12 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ArrowUpDown, CheckCircle2, Clock3, Filter, Search, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/nagarseva-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { complaints, statusStyles } from "@/lib/nagarseva-data";
+import { complaints as fallbackComplaints, statusStyles, type Status } from "@/lib/nagarseva-data";
+import { fetchComplaints, updateComplaintStatusServerFn } from "@/server/complaints";
+
 export const Route = createFileRoute("/officer")({
+  loader: async () => {
+    return await fetchComplaints({ ward: "Ward 82" });
+  },
   head: () => ({
     meta: [
       { title: "Officer workspace — NagarSeva" },
@@ -22,19 +27,48 @@ export const Route = createFileRoute("/officer")({
   }),
   component: Officer,
 });
+
 function Officer() {
-  const firstComplaint = complaints[0];
+  const router = useRouter();
+  const dbComplaints = Route.useLoaderData();
+  const complaintList = dbComplaints && dbComplaints.length > 0 ? dbComplaints : fallbackComplaints;
+
+  const firstComplaint = complaintList[0]!;
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(firstComplaint?.id ?? "");
-  const rows = useMemo(
-    () =>
-      complaints.filter((item) =>
-        `${item.category} ${item.location} ${item.id}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [query],
-  );
-  if (!firstComplaint) return null;
-  const selected = complaints.find((item) => item.id === active) ?? firstComplaint;
+  const [active, setActive] = useState(firstComplaint.id);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+
+  const rows = useMemo(() => {
+    return complaintList.filter((item) => {
+      const matchQuery = `${item.category} ${item.location} ${item.id}`
+        .toLowerCase()
+        .includes(query.toLowerCase());
+      if (!matchQuery) return false;
+      if (priorityFilter && item.priority !== priorityFilter) return false;
+      return true;
+    });
+  }, [complaintList, query, priorityFilter]);
+
+  const selected = complaintList.find((item) => item.id === active) ?? firstComplaint;
+
+  const handleStatusChange = async (newStatus: Status, message: string) => {
+    try {
+      await updateComplaintStatusServerFn({
+        data: {
+          id: selected.id,
+          status: newStatus,
+          actorName: "Ramesh Kumar (JE)",
+          actorRole: "Operations Officer",
+          message,
+        },
+      });
+      toast.success(`Complaint updated to ${newStatus}`);
+      router.invalidate();
+    } catch (e) {
+      toast.error((e as Error).message || "Update failed");
+    }
+  };
+
   return (
     <AppShell title="Operations workspace" eyebrow="Ward 82 · Drainage Operations">
       <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -50,42 +84,44 @@ function Officer() {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Filter /> Filters
-              </Button>
-              <Button variant="outline" size="sm">
-                <ArrowUpDown /> Priority
+              <Button
+                variant={priorityFilter ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPriorityFilter((prev) => (prev === "High" ? null : "High"))}
+              >
+                <Filter /> {priorityFilter ? "High only" : "All Priorities"}
               </Button>
             </div>
           </div>
-          <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
-            <div className="hidden grid-cols-[minmax(0,1.3fr)_140px_130px_130px] gap-4 border-b border-border bg-muted px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground md:grid">
-              <span>Report</span>
-              <span>Status</span>
-              <span>SLA</span>
-              <span>Priority</span>
-            </div>
+          <div className="mt-5 space-y-3">
             {rows.map((item) => (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => setActive(item.id)}
-                className={`grid w-full gap-3 border-b border-border p-4 text-left transition-colors md:grid-cols-[minmax(0,1.3fr)_140px_130px_130px] md:items-center ${active === item.id ? "bg-civic-soft/50" : "hover:bg-muted"}`}
+                className={`app-panel flex w-full flex-col gap-3 rounded-lg p-5 text-left transition sm:flex-row sm:items-center sm:justify-between ${active === item.id ? "ring-2 ring-civic" : ""}`}
               >
                 <div>
-                  <p className="font-bold">{item.category}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-extrabold">{item.category}</span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-xs font-bold ${statusStyles[item.status as Status] ?? "bg-muted"}`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {item.id} · {item.location}
+                    {item.location} · {item.id}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-muted-foreground">
+                    <Clock3 className="mr-1 inline h-3.5 w-3.5 text-civic" />
+                    {"slaRemaining" in item && item.slaRemaining
+                      ? item.slaRemaining
+                      : "sla" in item
+                        ? String(item.sla)
+                        : "Target SLA: 48h"}
                   </p>
                 </div>
-                <span
-                  className={`w-fit rounded-md px-2 py-1 text-xs font-bold ${statusStyles[item.status]}`}
-                >
-                  {item.status}
-                </span>
-                <span className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-                  <Clock3 className="h-4 w-4" />
-                  {item.sla}
-                </span>
                 <span
                   className={`w-fit rounded-md px-2 py-1 text-xs font-bold ${item.priority === "High" ? "bg-risk text-risk-foreground" : "bg-muted text-muted-foreground"}`}
                 >
@@ -105,21 +141,24 @@ function Officer() {
             {selected.description}
           </div>
           <div className="mt-5 space-y-2">
-            <Button className="w-full" onClick={() => toast.success("Status set to In Progress.")}>
-              <Wrench /> Begin work
-            </Button>
             <Button
-              variant="outline"
               className="w-full"
-              onClick={() => toast.info("Additional information request queued.")}
-            >
-              Request information
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
+              disabled={selected.status === "In Progress"}
               onClick={() =>
-                toast.info("Resolution evidence capture is available when storage is connected.")
+                handleStatusChange("In Progress", "Field team assigned and initiated ground works.")
+              }
+            >
+              <Wrench /> {selected.status === "In Progress" ? "Work In Progress" : "Begin work"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={selected.status === "Resolved — pending verification"}
+              onClick={() =>
+                handleStatusChange(
+                  "Resolved — pending verification",
+                  "Repair completed by field team. Awaiting citizen confirmation.",
+                )
               }
             >
               <CheckCircle2 /> Submit resolution evidence
