@@ -16,7 +16,12 @@ import { Route as MapRouteImport } from './routes/map'
 import { Route as OfficerRouteImport } from './routes/officer'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as WardRouteImport } from './routes/ward'
+import { Route as ApiComplaintsRouteImport } from './routes/api/complaints'
+import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ComplaintIdRouteImport } from './routes/complaint.$id'
+import { Route as ApiAuthLoginRouteImport } from './routes/api/auth.login'
+import { Route as ApiAuthRegisterRouteImport } from './routes/api/auth.register'
+import { Route as ApiComplaintsIdRouteImport } from './routes/api/complaints.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,10 +58,35 @@ const WardRoute = WardRouteImport.update({
   path: '/ward',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiComplaintsRoute = ApiComplaintsRouteImport.update({
+  id: '/api/complaints',
+  path: '/api/complaints',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatsRoute = ApiStatsRouteImport.update({
+  id: '/api/stats',
+  path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComplaintIdRoute = ComplaintIdRouteImport.update({
   id: '/complaint/$id',
   path: '/complaint/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
+  id: '/api/auth/login',
+  path: '/api/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthRegisterRoute = ApiAuthRegisterRouteImport.update({
+  id: '/api/auth/register',
+  path: '/api/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiComplaintsIdRoute = ApiComplaintsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiComplaintsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -67,7 +97,12 @@ export interface FileRoutesByFullPath {
   '/officer': typeof OfficerRoute
   '/report': typeof ReportRoute
   '/ward': typeof WardRoute
+  '/api/complaints': typeof ApiComplaintsRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
   '/complaint/$id': typeof ComplaintIdRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/complaints/$id': typeof ApiComplaintsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +112,12 @@ export interface FileRoutesByTo {
   '/officer': typeof OfficerRoute
   '/report': typeof ReportRoute
   '/ward': typeof WardRoute
+  '/api/complaints': typeof ApiComplaintsRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
   '/complaint/$id': typeof ComplaintIdRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/complaints/$id': typeof ApiComplaintsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +128,12 @@ export interface FileRoutesById {
   '/officer': typeof OfficerRoute
   '/report': typeof ReportRoute
   '/ward': typeof WardRoute
+  '/api/complaints': typeof ApiComplaintsRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
   '/complaint/$id': typeof ComplaintIdRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/complaints/$id': typeof ApiComplaintsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +145,12 @@ export interface FileRouteTypes {
     | '/officer'
     | '/report'
     | '/ward'
+    | '/api/complaints'
+    | '/api/stats'
     | '/complaint/$id'
+    | '/api/auth/login'
+    | '/api/auth/register'
+    | '/api/complaints/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +160,12 @@ export interface FileRouteTypes {
     | '/officer'
     | '/report'
     | '/ward'
+    | '/api/complaints'
+    | '/api/stats'
     | '/complaint/$id'
+    | '/api/auth/login'
+    | '/api/auth/register'
+    | '/api/complaints/$id'
   id:
     | '__root__'
     | '/'
@@ -120,7 +175,12 @@ export interface FileRouteTypes {
     | '/officer'
     | '/report'
     | '/ward'
+    | '/api/complaints'
+    | '/api/stats'
     | '/complaint/$id'
+    | '/api/auth/login'
+    | '/api/auth/register'
+    | '/api/complaints/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,7 +191,11 @@ export interface RootRouteChildren {
   OfficerRoute: typeof OfficerRoute
   ReportRoute: typeof ReportRoute
   WardRoute: typeof WardRoute
+  ApiComplaintsRoute: typeof ApiComplaintsRouteWithChildren
+  ApiStatsRoute: typeof ApiStatsRoute
   ComplaintIdRoute: typeof ComplaintIdRoute
+  ApiAuthLoginRoute: typeof ApiAuthLoginRoute
+  ApiAuthRegisterRoute: typeof ApiAuthRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +249,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/complaints': {
+      id: '/api/complaints'
+      path: '/api/complaints'
+      fullPath: '/api/complaints'
+      preLoaderRoute: typeof ApiComplaintsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stats': {
+      id: '/api/stats'
+      path: '/api/stats'
+      fullPath: '/api/stats'
+      preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/complaint/$id': {
       id: '/complaint/$id'
       path: '/complaint/$id'
@@ -192,8 +270,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComplaintIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/login': {
+      id: '/api/auth/login'
+      path: '/api/auth/login'
+      fullPath: '/api/auth/login'
+      preLoaderRoute: typeof ApiAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/register': {
+      id: '/api/auth/register'
+      path: '/api/auth/register'
+      fullPath: '/api/auth/register'
+      preLoaderRoute: typeof ApiAuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/complaints/$id': {
+      id: '/api/complaints/$id'
+      path: '/$id'
+      fullPath: '/api/complaints/$id'
+      preLoaderRoute: typeof ApiComplaintsIdRouteImport
+      parentRoute: typeof ApiComplaintsRoute
+    }
   }
 }
+
+interface ApiComplaintsRouteChildren {
+  ApiComplaintsIdRoute: typeof ApiComplaintsIdRoute
+}
+
+const ApiComplaintsRouteChildren: ApiComplaintsRouteChildren = {
+  ApiComplaintsIdRoute: ApiComplaintsIdRoute,
+}
+
+const ApiComplaintsRouteWithChildren = ApiComplaintsRoute._addFileChildren(
+  ApiComplaintsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -203,7 +314,11 @@ const rootRouteChildren: RootRouteChildren = {
   OfficerRoute: OfficerRoute,
   ReportRoute: ReportRoute,
   WardRoute: WardRoute,
+  ApiComplaintsRoute: ApiComplaintsRouteWithChildren,
+  ApiStatsRoute: ApiStatsRoute,
   ComplaintIdRoute: ComplaintIdRoute,
+  ApiAuthLoginRoute: ApiAuthLoginRoute,
+  ApiAuthRegisterRoute: ApiAuthRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

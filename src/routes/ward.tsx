@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Info, TrendingDown, TrendingUp } from "lucide-react";
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -18,14 +19,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-const categoryData = [
+import { fetchWardStats, type WardMetrics } from "@/server/stats";
+
+const fallbackCategoryData = [
   { name: "Drain", value: 34 },
   { name: "Lighting", value: 28 },
   { name: "Waste", value: 22 },
   { name: "Road", value: 18 },
   { name: "Other", value: 12 },
 ];
+
 export const Route = createFileRoute("/ward")({
+  loader: async () => {
+    try {
+      const stats = await fetchWardStats("Ward 82");
+      return { stats };
+    } catch {
+      return { stats: null };
+    }
+  },
   head: () => ({
     meta: [
       { title: "Ward 82 accountability — NagarSeva" },
@@ -45,7 +57,26 @@ export const Route = createFileRoute("/ward")({
   }),
   component: Ward,
 });
+
 function Ward() {
+  const { stats } = Route.useLoaderData();
+  const [selectedWard, setSelectedWard] = useState("82");
+
+  const categoryData =
+    stats?.categoryBreakdown && stats.categoryBreakdown.length > 0
+      ? stats.categoryBreakdown.map((item) => ({ name: item.category, value: item.count }))
+      : fallbackCategoryData;
+
+  const total = stats?.totalComplaints ?? 100;
+  const inProgress = stats?.inProgressCount ?? 31;
+  const verified = stats?.verifiedCount ?? 42;
+  const unverified = (stats?.resolvedCount ?? 51) - verified;
+
+  const totalSafe = total > 0 ? total : 1;
+  const inProgressPct = Math.round((inProgress / totalSafe) * 100);
+  const verifiedPct = Math.round((verified / totalSafe) * 100);
+  const unverifiedPct = Math.round((unverified / totalSafe) * 100);
+  const submittedPct = Math.max(0, 100 - inProgressPct - verifiedPct - unverifiedPct);
   return (
     <AppShell title="Ward accountability" eyebrow="Public performance overview">
       <div className="mt-6 flex flex-wrap gap-3">
@@ -75,12 +106,22 @@ function Ward() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <Metric
           title="Median resolution time"
-          value="4.2 days"
+          value={stats?.medianResolutionTime ?? "4.2 days"}
           movement="0.8 days faster"
           direction="up"
         />
-        <Metric title="Escalation rate" value="12%" movement="2 points lower" direction="down" />
-        <Metric title="Reopen rate" value="6%" movement="Stable this period" direction="down" />
+        <Metric
+          title="Escalation rate"
+          value={stats?.escalationRate ?? "12%"}
+          movement="2 points lower"
+          direction="down"
+        />
+        <Metric
+          title="Reopen rate"
+          value={stats?.reopenRate ?? "6%"}
+          movement="Stable this period"
+          direction="down"
+        />
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="app-panel rounded-lg p-5">
@@ -113,10 +154,10 @@ function Ward() {
           </p>
           <div className="mt-6 space-y-5">
             {[
-              ["Submitted", "18", "18%"],
-              ["In progress", "31", "31%"],
-              ["Verified closures", "42", "42%"],
-              ["Unverified closures", "9", "9%"],
+              ["Submitted", `${total}`, `${submittedPct}%`],
+              ["In progress", `${inProgress}`, `${inProgressPct}%`],
+              ["Verified closures", `${verified}`, `${verifiedPct}%`],
+              ["Unverified closures", `${unverified}`, `${unverifiedPct}%`],
             ].map(([label, value, width]) => (
               <div key={label}>
                 <div className="flex justify-between text-sm">

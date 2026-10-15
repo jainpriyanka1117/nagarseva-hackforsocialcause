@@ -1,7 +1,23 @@
 import { AlertTriangle, MapPin, ShieldAlert } from "lucide-react";
-import { complaints } from "@/lib/nagarseva-data";
+import { complaints as defaultComplaints } from "@/lib/nagarseva-data";
 import { cn } from "@/lib/utils";
-export function CivicMap({ large = false, selectedId }: { large?: boolean; selectedId?: string }) {
+
+export interface CivicMapMarker {
+  id: string;
+  x: number;
+  y: number;
+  safety?: boolean;
+}
+
+export function CivicMap({
+  large = false,
+  selectedId,
+  items = defaultComplaints,
+}: {
+  large?: boolean;
+  selectedId?: string | undefined;
+  items?: CivicMapMarker[];
+}) {
   return (
     <div
       className={cn(
@@ -13,7 +29,7 @@ export function CivicMap({ large = false, selectedId }: { large?: boolean; selec
       <div className="absolute left-[9%] top-[18%] h-40 w-2 rotate-45 bg-card/85" />
       <div className="absolute right-[15%] top-[4%] h-[110%] w-4 -rotate-12 bg-card/85" />
       <div className="absolute bottom-[32%] left-0 h-3 w-[110%] rotate-6 bg-card/85" />
-      {complaints.map((item) => (
+      {items.map((item) => (
         <div
           key={item.id}
           className="absolute -translate-x-1/2 -translate-y-1/2"
