@@ -1,0 +1,214 @@
+{
+  "seedUsers": [
+    {
+      "id": "usr_citizen_01",
+      "email": "citizen@nagarseva.org",
+      "password": "Citizen123!",
+      "name": "Priya Sharma",
+      "role": "citizen",
+      "ward": "Ward 82",
+      "phone": "+91 98765 43210"
+    },
+    {
+      "id": "usr_officer_01",
+      "email": "officer@nagarseva.org",
+      "password": "Officer123!",
+      "name": "Ramesh Kumar (JE)",
+      "role": "officer",
+      "ward": "Ward 82",
+      "department": "Stormwater & Drainage",
+      "phone": "+91 98765 43211"
+    },
+    {
+      "id": "usr_admin_01",
+      "email": "admin@nagarseva.org",
+      "password": "Admin123!",
+      "name": "Municipal Admin",
+      "role": "admin",
+      "ward": "Headquarters",
+      "department": "Public Grievance Redressal",
+      "phone": "+91 98765 43212"
+    }
+  ],
+  "sampleComplaints": [
+    {
+      "id": "NS-24-01847",
+      "category": "Blocked drain",
+      "location": "12th Cross, Indiranagar",
+      "ward": "Ward 82",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Drain overflow after morning rain. Water is entering the footpath and pedestrian crossings.",
+      "x": 31,
+      "y": 49,
+      "safety": 0,
+      "citizenName": "Priya Sharma",
+      "assignedOfficerName": "Ramesh Kumar (JE)",
+      "slaTargetHours": 12,
+      "evidence": [
+        {
+          "fileName": "drain_overflow_initial.jpg",
+          "fileUrl": "/uploads/drain_overflow_initial.jpg",
+          "caption": "Water accumulation at corner of 12th cross",
+          "uploadedBy": "Priya Sharma",
+          "uploadedRole": "Citizen"
+        }
+      ],
+      "timeline": [
+        {
+          "action": "Submitted issue",
+          "message": "Report logged with high urgency due to road water logging.",
+          "actorName": "Priya Sharma",
+          "actorRole": "Citizen"
+        },
+        {
+          "action": "Assigned officer",
+          "message": "Assigned to Ramesh Kumar (Junior Engineer, Ward 82).",
+          "actorName": "System",
+          "actorRole": "System"
+        },
+        {
+          "action": "In progress",
+          "message": "Maintenance team dispatched with desilting equipment.",
+          "actorName": "Ramesh Kumar (JE)",
+          "actorRole": "Officer"
+        }
+      ]
+    },
+    {
+      "id": "NS-24-01822",
+      "category": "Poor lighting",
+      "location": "Behind Metro Station",
+      "ward": "Ward 82",
+      "status": "Resolved — pending verification",
+      "priority": "High",
+      "description": "Dark corridor near subway exit has had no working streetlights for five consecutive evenings.",
+      "x": 62,
+      "y": 28,
+      "safety": 1,
+      "citizenName": "Karan Verma",
+      "assignedOfficerName": "Sunil Nair",
+      "slaTargetHours": 12,
+      "resolutionProof": "Bulb assembly and secondary relay replaced. Luminaires tested operational.",
+      "timeline": [
+        {
+          "action": "Submitted issue",
+          "message": "Flagged as safety concern after dark corridor reports.",
+          "actorName": "Karan Verma",
+          "actorRole": "Citizen"
+        },
+        {
+          "action": "Resolved — pending verification",
+          "message": "Fixture repaired and inspected. Awaiting citizen verification.",
+          "actorName": "Sunil Nair",
+          "actorRole": "Officer"
+        }
+      ]
+    },
+    {
+      "id": "NS-24-01790",
+      "category": "Waste dump",
+      "location": "Near 100ft Park",
+      "ward": "Ward 82",
+      "status": "Closed: verified",
+      "priority": "Medium",
+      "description": "Commercial debris accumulated over 48 hours blocking waste segregation station.",
+      "x": 48,
+      "y": 66,
+      "safety": 0,
+      "citizenName": "Anita Desai",
+      "assignedOfficerName": "Ramesh Kumar (JE)",
+      "slaTargetHours": 48,
+      "resolutionProof": "Site cleared with compactors and sanitization spray applied.",
+      "verificationFeedback": "Confirmed clean. Area has been restored.",
+      "timeline": [
+        {
+          "action": "Submitted issue",
+          "message": "Debris pile reported near public park.",
+          "actorName": "Anita Desai",
+          "actorRole": "Citizen"
+        },
+        {
+          "action": "Closed: verified",
+          "message": "Citizen inspected site and confirmed complete removal.",
+          "actorName": "Anita Desai",
+          "actorRole": "Citizen"
+        }
+      ]
+    },
+    {
+      "id": "NS-24-01671",
+      "category": "Pothole hazard",
+      "location": "CMH Road Junction",
+      "ward": "Ward 82",
+      "status": "Reopened",
+      "priority": "High",
+      "description": "Deep asphalt trench resurfacing after quick patch washed out in rainfall.",
+      "x": 75,
+      "y": 42,
+      "safety": 1,
+      "citizenName": "Rohit Shenoy",
+      "assignedOfficerName": "Ramesh Kumar (JE)",
+      "slaTargetHours": 12,
+      "reopenReason": "Patching mixture washed away after evening rain; pothole has deepened.",
+      "timeline": [
+        {
+          "action": "Submitted issue",
+          "message": "Deep pothole causing two-wheeler skids.",
+          "actorName": "Rohit Shenoy",
+          "actorRole": "Citizen"
+        },
+        {
+          "action": "Reopened",
+          "message": "Citizen reopened with photos showing resurfacing failure.",
+          "actorName": "Rohit Shenoy",
+          "actorRole": "Citizen"
+        }
+      ]
+    }
+  ],
+  "sampleApiRequests": {
+    "createComplaint": {
+      "method": "POST",
+      "endpoint": "/api/complaints",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "category": "Pothole hazard",
+        "location": "Outer Ring Road service lane, Ward 82",
+        "ward": "Ward 82",
+        "description": "Hazardous pothole causing two-wheelers to swerve dangerously into the main carriageway.",
+        "priority": "High",
+        "safety": true,
+        "citizenName": "Priya Sharma",
+        "x": 45,
+        "y": 55
+      }
+    },
+    "updateStatus": {
+      "method": "PATCH",
+      "endpoint": "/api/complaints/NS-24-01847",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "status": "Resolved — pending verification",
+        "actorName": "Ramesh Kumar (JE)",
+        "actorRole": "Officer",
+        "resolutionProof": "Clogged debris desilted by jetting machine and verified water flow restored."
+      }
+    },
+    "login": {
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "officer@nagarseva.org",
+        "password": "Officer123!"
+      }
+    }
+  }
+}

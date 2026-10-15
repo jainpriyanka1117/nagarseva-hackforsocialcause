@@ -8,6 +8,8 @@ import {
   fetchComplaintById,
   createComplaint,
   updateComplaintStatus,
+  calculateSla,
+  formatRemaining,
 } from "../server/complaints";
 import { fetchWardStats, fetchSafetyMapData } from "../server/stats";
 import { loginUser, registerUser } from "../server/auth";
@@ -77,6 +79,24 @@ describe("Backend Database, Auth and Services", () => {
       });
       expect(loginRes.user.email).toBe(randomEmail);
     });
+
+    it("rejects duplicate email registration", async () => {
+      await expect(
+        registerUser({
+          name: "Duplicate User",
+          email: "officer@nagarseva.org",
+          password: "Password123!",
+        }),
+      ).rejects.toThrow("A user with this email already exists");
+    });
+
+    it("handles invalid or expired tokens gracefully", async () => {
+      const invalid = await verifyToken("not.a.valid.jwt.token");
+      expect(invalid).toBeNull();
+
+      const empty = await verifyToken("");
+      expect(empty).toBeNull();
+    });
   });
 
   describe("Grievance Lifecycle & CRUD", () => {
@@ -145,6 +165,64 @@ describe("Backend Database, Auth and Services", () => {
       const updated = await fetchComplaintById(createdComplaintId);
       expect(updated?.status).toBe("Closed: verified");
       expect(updated?.verifiedAt).toBeDefined();
+    });
+
+    it("allows citizen to reopen issue if dissatisfied", async () => {
+      // Create new complaint for reopening
+      const complaintToReopen = await createComplaint({
+        category: "Pothole hazard",
+        location: "100 Feet Road Junction",
+        ward: "Ward 82",
+        description: "Large pothole re-emerging on left lane.",
+        priority: "High",
+      });
+
+      // Officer marks resolved
+      await updateComplaintStatus({
+        id: complaintToReopen.id,
+        status: "Resolved — pending verification",
+        actorName: "Ramesh Kumar (JE)",
+        actorRole: "Officer",
+        resolutionProof: "Asphalt patch applied.",
+      });
+
+      // Citizen reopens with feedback
+      await updateComplaintStatus({
+        id: complaintToReopen.id,
+        status: "Reopened",
+        actorName: "Ananya Roy",
+        actorRole: "Citizen",
+        reopenReason: "Patch washed away after evening rain; pothole still deep.",
+      });
+
+      const reopened = await fetchComplaintById(complaintToReopen.id);
+      expect(reopened?.status).toBe("Reopened");
+      expect(reopened?.reopenReason).toBe(
+        "Patch washed away after evening rain; pothole still deep.",
+      );
+      expect(reopened?.timeline.some((t) => t.action === "Reopened")).toBe(true);
+    });
+
+    it("calculates SLA deadlines accurately according to priority", () => {
+      const high = calculateSla("High");
+      expect(high.remaining).toBe("12h 00m remaining");
+
+      const medium = calculateSla("Medium");
+      expect(medium.remaining).toBe("48h 00m remaining");
+
+      const low = calculateSla("Low");
+      expect(low.remaining).toBe("72h 00m remaining");
+    });
+
+    it("formats remaining SLA deadlines and detects overdue issues", () => {
+      expect(formatRemaining(null)).toBe("Standard SLA");
+      expect(formatRemaining(undefined)).toBe("Standard SLA");
+
+      const pastDate = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
+      expect(formatRemaining(pastDate)).toContain("Overdue by");
+
+      const futureDate = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+      expect(formatRemaining(futureDate)).toContain("remaining");
     });
 
     it("filters complaints by ward, category, and safety", async () => {
