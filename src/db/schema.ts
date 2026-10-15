@@ -50,6 +50,7 @@ export const complaints = sqliteTable("complaints", {
   verifiedAt: text("verified_at"),
   resolutionProof: text("resolution_proof"),
   verificationFeedback: text("verification_feedback"),
+  reopenReason: text("reopen_reason"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

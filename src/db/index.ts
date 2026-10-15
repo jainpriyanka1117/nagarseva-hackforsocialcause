@@ -53,10 +53,17 @@ export async function ensureDbInitialized() {
       verified_at TEXT,
       resolution_proof TEXT,
       verification_feedback TEXT,
+      reopen_reason TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
   `);
+
+  try {
+    await client.execute(`ALTER TABLE complaints ADD COLUMN reopen_reason TEXT;`);
+  } catch {
+    // Column already exists
+  }
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS complaint_timeline (

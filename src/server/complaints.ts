@@ -173,6 +173,7 @@ export type UpdateComplaintStatusInput = {
   message?: string;
   resolutionProof?: string;
   verificationFeedback?: string;
+  reopenReason?: string;
 };
 
 export async function updateComplaintStatus(input: UpdateComplaintStatusInput) {
@@ -189,6 +190,8 @@ export async function updateComplaintStatus(input: UpdateComplaintStatusInput) {
   } else if (input.status === "Closed: verified" || input.status === "Closed: unverified") {
     updateData.verifiedAt = now;
     if (input.verificationFeedback) updateData.verificationFeedback = input.verificationFeedback;
+  } else if (input.status === "Reopened") {
+    if (input.reopenReason) updateData.reopenReason = input.reopenReason;
   }
 
   await db.update(complaints).set(updateData).where(eq(complaints.id, input.id));
@@ -198,13 +201,15 @@ export async function updateComplaintStatus(input: UpdateComplaintStatusInput) {
     complaintId: input.id,
     actorName: input.actorName,
     actorRole: input.actorRole,
-    action: `Status changed to ${input.status}`,
+    action: input.status === "Reopened" ? "Reopened" : `Status changed to ${input.status}`,
     message:
       input.message ??
       (input.status === "Closed: verified"
         ? "Citizen confirmed issue is satisfactorily resolved on ground."
         : input.status === "Reopened"
-          ? "Citizen flagged that problem persists; escalated back to operations."
+          ? input.reopenReason
+            ? `Reopened by citizen: ${input.reopenReason}`
+            : "Citizen flagged that problem persists; escalated back to operations."
           : `Grievance transitioned to ${input.status}.`),
     createdAt: now,
   });
